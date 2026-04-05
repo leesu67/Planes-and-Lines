@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>空間直線方程式 - 互動學習工具</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #fff; overflow: hidden; }
+#container { display: flex; height: 100vh; }
+#sidebar { width: 380px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); padding: 15px; overflow-y: auto; border-right: 1px solid rgba(255, 255, 255, 0.1); }
+#canvas-container { flex: 1; position: relative; }
+#canvas-container canvas { display: block; }
+#copyright { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); color: rgba(255, 255, 255, 0.5); font-size: 0.85rem; text-align: center; z-index: 100; pointer-events: none; }
+h1 { font-size: 1.3rem; margin-bottom: 15px; color: #4cc9f0; text-align: center; text-shadow: 0 0 10px rgba(76, 201, 240, 0.5); }
+.mode-btn { width: 100%; padding: 10px; margin-bottom: 8px; background: rgba(255, 255, 255, 0.1); border: 2px solid transparent; border-radius: 8px; color: #fff; cursor: pointer; transition: all 0.3s; font-size: 0.9rem; text-align: left; }
+.mode-btn:hover { background: rgba(255, 255, 255, 0.2); }
+.mode-btn.active { background: linear-gradient(135deg, #4cc9f0, #4361ee); border-color: #4cc9f0; box-shadow: 0 0 20px rgba(76, 201, 240, 0.4); }
+.input-group { background: rgba(0, 0, 0, 0.3); padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+.input-group h3 { color: #4cc9f0; margin-bottom: 10px; font-size: 1rem; }
+.input-row { display: flex; gap: 5px; margin-bottom: 8px; align-items: center; }
+.input-row label { min-width: 50px; color: #aaa; font-size: 0.85rem; }
+.input-row input { flex: 1; padding: 6px 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 5px; background: rgba(255, 255, 255, 0.1); color: #fff; font-size: 0.9rem; text-align: center; }
+.input-row input:focus { outline: none; border-color: #4cc9f0; }
+.vector-input { display: flex; align-items: center; gap: 3px; flex: 1; }
+.vector-input input { width: 45px; }
+.vector-input span { color: #aaa; font-size: 0.8rem; }
+.btn { width: 100%; padding: 10px; background: linear-gradient(135deg, #4cc9f0, #4361ee); border: none; border-radius: 8px; color: #fff; font-size: 0.9rem; cursor: pointer; transition: all 0.3s; margin-top: 8px; }
+.btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(76, 201, 240, 0.4); }
+.btn-secondary { background: rgba(255, 255, 255, 0.1); }
+.btn-secondary:hover { background: rgba(255, 255, 255, 0.2); }
+#result { background: rgba(0, 0, 0, 0.4); padding: 12px; border-radius: 8px; margin-top: 12px; display: none; border: 1px solid rgba(255, 215, 0, 0.3); }
+#result h3 { color: #4cc9f0; margin-bottom: 8px; font-size: 0.95rem; }
+.equation { font-size: 1.1rem; color: #ffd700; text-align: center; padding: 10px; background: rgba(255, 215, 0, 0.1); border-radius: 5px; margin: 8px 0; font-family: 'Times New Roman', serif; }
+.formula { color: #aaa; font-size: 0.8rem; margin-top: 8px; line-height: 1.5; }
+#legend { position: absolute; top: 20px; right: 20px; background: rgba(0, 0, 0, 0.7); padding: 12px; border-radius: 8px; font-size: 0.8rem; }
+.legend-item { display: flex; align-items: center; margin: 4px 0; }
+.legend-color { width: 18px; height: 3px; margin-right: 8px; border-radius: 2px; }
+.info-panel { background: rgba(76, 201, 240, 0.1); border: 1px solid rgba(76, 201, 240, 0.3); border-radius: 8px; padding: 12px; margin-top: 12px; }
+.info-panel h4 { color: #4cc9f0; margin-bottom: 8px; }
+.info-panel p { color: #aaa; font-size: 0.8rem; line-height: 1.5; }
+.control-buttons { display: flex; gap: 6px; margin-top: 12px; }
+.control-buttons .btn { flex: 1; padding: 8px; font-size: 0.8rem; }
+.css2d-label { color: #fff; font-family: 'Microsoft JhengHei', Arial, sans-serif; font-size: 11px; padding: 3px 6px; background: rgba(0, 0, 0, 0.75); border-radius: 4px; white-space: nowrap; pointer-events: none; }
+.label-point { background: rgba(255, 215, 0, 0.9); color: #000; font-weight: bold; }
+.label-direction { background: rgba(0, 255, 136, 0.9); color: #000; font-weight: bold; }
+.label-axis { font-size: 13px; font-weight: bold; }
+.label-equation { background: rgba(255, 159, 67, 0.95); color: #000; font-size: 13px; font-weight: bold; padding: 6px 10px; }
+.plane1-label { background: rgba(255, 100, 100, 0.9); color: #fff; }
+.plane2-label { background: rgba(100, 100, 255, 0.9); color: #fff; }
+.param-note { background: rgba(255, 107, 107, 0.1); border-left: 3px solid #ff6b6b; padding: 8px; margin: 8px 0; font-size: 0.8rem; color: #ff6b6b; }
+.animation-control { display: flex; gap: 8px; margin-top: 10px; }
+.animation-control .btn { flex: 1; padding: 8px; }
+.two-planes-group { margin-bottom: 12px; }
+.two-planes-group .group-title { font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; padding: 4px 8px; border-radius: 4px; }
+.two-planes-group.plane1 .group-title { color: #ff6b6b; background: rgba(255,100,100,0.15); }
+.two-planes-group.plane2 .group-title { color: #6666ff; background: rgba(100,100,255,0.15); }
+.inline-inputs { display: flex; gap: 4px; align-items: center; }
+.inline-inputs input { width: 40px; }
+.inline-inputs .var { color: #aaa; font-size: 0.8rem; }
+</style>
+</head>
+<body>
+<div id="container">
+<div id="sidebar">
+<h1>📍 空間直線方程式</h1>
+<button class="mode-btn active" onclick="setMode('parametric')">📝 直線參數式</button>
+<button class="mode-btn" onclick="setMode('symmetric')">⚖️ 對稱比例式</button>
+<button class="mode-btn" onclick="setMode('twoPlanes')">📦 兩面式</button>
+<div id="input-section">
+<!-- 參數式 -->
+<div id="mode-parametric" class="input-group">
+<h3>📝 直線參數式</h3>
+<p style="color:#aaa; font-size:0.8rem; margin-bottom:10px;">直線通過點 P₀，方向向量 d</p>
+<div class="input-row"><label>定點 P₀</label>
+<div class="vector-input"><input type="number" id="p0x" value="1"><span>,</span><input type="number" id="p0y" value="0"><span>,</span><input type="number" id="p0z" value="0"></div></div>
+<div class="input-row"><label>方向 d</label>
+<div class="vector-input"><input type="number" id="dir_x" value="1"><span>,</span><input type="number" id="dir_y" value="1"><span>,</span><input type="number" id="dir_z" value="1"></div></div>
+<button class="btn" onclick="calculateParametric()">✨ 產生直線動畫</button>
+<button class="btn btn-secondary" onclick="loadExample('parametric')">📋 載入範例</button>
+<div class="animation-control">
+<button class="btn btn-secondary" onclick="togglePointAnimation()">▶️ 動點動畫</button>
+</div>
+</div>
+<!-- 對稱比例式 -->
+<div id="mode-symmetric" class="input-group" style="display:none;">
+<h3>⚖️ 對稱比例式</h3>
+<p style="color:#aaa; font-size:0.8rem; margin-bottom:10px;">將參數式化簡為比例形式</p>
+<div class="input-row"><label>通過點</label>
+<div class="vector-input"><input type="number" id="sym_px" value="1"><span>,</span><input type="number" id="sym_py" value="0"><span>,</span><input type="number" id="sym_pz" value="0"></div></div>
+<div class="input-row"><label>方向向量</label>
+<div class="vector-input"><input type="number" id="sym_dx" value="2"><span>,</span><input type="number" id="sym_dy" value="2"><span>,</span><input type="number" id="sym_dz" value="4"></div></div>
+<button class="btn" onclick="calculateSymmetric()">✨ 產生直線動畫</button>
+<button class="btn btn-secondary" onclick="loadExample('symmetric')">📋 載入範例</button>
+</div>
+<!-- 兩面式 -->
+<div id="mode-twoPlanes" class="input-group" style="display:none;">
+<h3>📦 兩面式（兩平面交線）</h3>
+<p style="color:#aaa; font-size:0.8rem; margin-bottom:10px;">直線為兩平面 Π₁ 與 Π₂ 的交線</p>
+<div class="param-note">⚠️ 兩平面法向量不可平行</div>
+<div class="two-planes-group plane1">
+<div class="group-title">平面 Π₁：</div>
+<div class="inline-inputs">
+<input type="number" id="a1" value="1"><span class="var">x +</span>
+<input type="number" id="b1" value="1"><span class="var">y +</span>
+<input type="number" id="c1" value="-1"><span class="var">z =</span>
+<input type="number" id="d1" value="0">
+</div>
+</div>
+<div class="two-planes-group plane2">
+<div class="group-title">平面 Π₂：</div>
+<div class="inline-inputs">
+<input type="number" id="a2" value="1"><span class="var">x +</span>
+<input type="number" id="b2" value="-1"><span class="var">y +</span>
+<input type="number" id="c2" value="0"><span class="var">z =</span>
+<input type="number" id="d2" value="0">
+</div>
+</div>
+<button class="btn" onclick="calculateTwoPlanes()">✨ 產生直線動畫</button>
+<button class="btn btn-secondary" onclick="loadExample('twoPlanes')">📋 載入範例</button>
+</div>
+</div>
+<div id="result">
+<h3>📐 直線方程式</h3>
+<div class="equation" id="equation-display"></div>
+<div class="formula" id="formula-display"></div>
+</div>
+<div class="info-panel" id="info-panel">
+<h4>💡 學習重點</h4>
+<p id="learning-info"></p>
+</div>
+<div class="control-buttons">
+<button class="btn btn-secondary" onclick="resetView()">🔄 重置視角</button>
+<button class="btn btn-secondary" onclick="toggleGrid()">🔲 切換網格</button>
+<button class="btn btn-secondary" onclick="toggleLabels()">🏷️ 切換標籤</button>
+</div>
+</div>
+<div id="canvas-container">
+<div id="legend">
+<div class="legend-item"><div class="legend-color" style="background:#ff4444;"></div><span>X 軸</span></div>
+<div class="legend-item"><div class="legend-color" style="background:#44ff44;"></div><span>Y 軸</span></div>
+<div class="legend-item"><div class="legend-color" style="background:#4488ff;"></div><span>Z 軸</span></div>
+<div class="legend-item"><div class="legend-color" style="background:#ff9f43;"></div><span>直線</span></div>
+<div class="legend-item"><div class="legend-color" style="background:rgba(255,100,100,0.8);"></div><span>平面 Π₁</span></div>
+<div class="legend-item"><div class="legend-color" style="background:rgba(100,100,255,0.8);"></div><span>平面 Π₂</span></div>
+</div>
+<div id="copyright">👨‍🏫 李向宇老師製作</div>
+</div>
+</div>
+<script>
+let scene, camera, renderer, labelRenderer, controls;
+let lineMesh, pointMarker, directionArrow;
+let plane1Mesh, plane2Mesh;
+let animatedPoint;
+let pointAnimationId = null;
+let isAnimating = false;
+let pointMarkers = [];
+let auxLines = [];
+let labels = [];
+let showGrid = true;
+let showLabels = true;
+let gridHelper;
+let pointsGroup = new THREE.Group();
+let equationLabels = [];
+
+function init() {
+const container = document.getElementById('canvas-container');
+scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1a2e);
+camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+container.appendChild(renderer.domElement);
+labelRenderer = new THREE.CSS2DRenderer();
+labelRenderer.setSize(container.clientWidth, container.clientHeight);
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0px';
+labelRenderer.domElement.style.pointerEvents = 'none';
+container.appendChild(labelRenderer.domElement);
+controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+camera.up.set(0, 0, 1);
+resetView();
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+scene.add(ambientLight);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+directionalLight.position.set(10, 10, 15);
+scene.add(directionalLight);
+createAxesAndGrid();
+scene.add(pointsGroup);
+setMode('parametric');
+animate();
+window.addEventListener('resize', onWindowResize);
+}
+
+function createAxesAndGrid() {
+const axisLength = 6;
+const axesHelper = new THREE.AxesHelper(axisLength);
+scene.add(axesHelper);
+addLabel(new THREE.Vector3(6.8, 0, 0), 'X', 'label-axis', '#ff4444');
+addLabel(new THREE.Vector3(0, 6.8, 0), 'Y', 'label-axis', '#44ff44');
+addLabel(new THREE.Vector3(0, 0, 6.8), 'Z', 'label-axis', '#4488ff');
+gridHelper = new THREE.GridHelper(12, 12, 0x444444, 0x222222);
+gridHelper.rotation.x = Math.PI / 2;
+scene.add(gridHelper);
+}
+
+function addLabel(pos, text, className, color) {
+const div = document.createElement('div');
+div.className = 'css2d-label ' + className;
+div.textContent = text;
+if (color) div.style.color = color;
+const label = new THREE.CSS2DObject(div);
+label.position.copy(pos);
+scene.add(label);
+labels.push(label);
+return label;
+}
+
+function addEquationLabel(pos, text) {
+const div = document.createElement('div');
+div.className = 'css2d-label label-equation';
+div.innerHTML = text.replace(/\n/g, '<br>');
+div.style.textAlign = 'center';
+div.style.lineHeight = '1.4';
+const label = new THREE.CSS2DObject(div);
+label.position.copy(pos);
+scene.add(label);
+equationLabels.push(label);
+return label;
+}
+
+function createPointMarker(position, color = 0xffd700, labelText = '', labelClass = 'label-point') {
+const marker = new THREE.Mesh(
+new THREE.SphereGeometry(0.15),
+new THREE.MeshPhongMaterial({ color: color, emissive: color, emissiveIntensity: 0.3 })
+);
+marker.position.copy(position);
+pointsGroup.add(marker);
+pointMarkers.push(marker);
+if (labelText) {
+addLabel(position.clone().add(new THREE.Vector3(0.25, 0.25, 0.25)), labelText, labelClass);
+}
+return marker;
+}
+
+function createLine(start, end, color = 0xff9f43) {
+const geom = new THREE.BufferGeometry().setFromPoints([start, end]);
+const mat = new THREE.LineBasicMaterial({ color: color, linewidth: 2 });
+const line = new THREE.Line(geom, mat);
+scene.add(line);
+auxLines.push(line);
+return line;
+}
+
+function createArrowLine(start, direction, length, color = 0x00ff88) {
+const dir = direction.clone().normalize();
+const arrow = new THREE.ArrowHelper(dir, start, length, color, 0.4, 0.25);
+scene.add(arrow);
+auxLines.push(arrow);
+return arrow;
+}
+
+function toggleGrid() {
+showGrid = !showGrid;
+gridHelper.visible = showGrid;
+}
+
+function toggleLabels() {
+showLabels = !showLabels;
+labels.forEach(label => {
+label.element.style.display = showLabels ? 'block' : 'none';
+});
+equationLabels.forEach(label => {
+label.element.style.display = showLabels ? 'block' : 'none';
+});
+}
+
+function onWindowResize() {
+const container = document.getElementById('canvas-container');
+camera.aspect = container.clientWidth / container.clientHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(container.clientWidth, container.clientHeight);
+labelRenderer.setSize(container.clientWidth, container.clientHeight);
+}
+
+function animate() {
+requestAnimationFrame(animate);
+controls.update();
+renderer.render(scene, camera);
+labelRenderer.render(scene, camera);
+}
+
+function resetView() {
+camera.position.set(10, -12, 10);
+controls.target.set(0, 0, 0);
+controls.update();
+}
+
+function setMode(mode) {
+document.querySelectorAll('.input-group').forEach(el => el.style.display = 'none');
+document.querySelectorAll('.mode-btn').forEach(el => el.classList.remove('active'));
+document.getElementById('mode-' + mode).style.display = 'block';
+const btn = document.querySelector(`button[onclick*="'${mode}'"]`);
+if (btn) btn.classList.add('active');
+updateLearningInfo(mode);
+clearGraphics();
+document.getElementById('result').style.display = 'none';
+stopPointAnimation();
+}
+
+function updateLearningInfo(mode) {
+const info = {
+'parametric': '<strong>📝 直線參數式</strong><br>用一個定點和方向向量表示直線<br><br><strong>公式：</strong><br>L: (x, y, z) = (x₀, y₀, z₀) + t(a, b, c)<br><br><strong>說明：</strong><br>• (x₀, y₀, z₀) 為直線上任意一點<br>• (a, b, c) 為方向向量<br>• t 為參數，t∈R',
+'symmetric': '<strong>⚖️ 對稱比例式</strong><br>將參數式消除參數 t<br><br><strong>公式：</strong><br>(x - x₀)/a = (y - y₀)/b = (z - z₀)/c<br><br><strong>說明：</strong><br>• 由參數式 t = (x-x₀)/a = (y-y₀)/b = (z-z₀)/c<br>• 當某方向分量為0時，如 a=0，<br>&nbsp;&nbsp;則 x = x₀（垂直於X軸）<br>• 當某方向分量為0且另一個也為0時，<br>&nbsp;&nbsp;如 a=b=0，則 x=x₀ 且 y=y₀（平行Z軸）',
+'twoPlanes': '<strong>📦 兩面式</strong><br>空間直線可視為兩平面的交線<br><br><strong>公式：</strong><br>Π₁: a₁x + b₁y + c₁z = d₁<br>Π₂: a₂x + b₂y + c₂z = d₂<br><br><strong>說明：</strong><br>• 直線 L = Π₁ ∩ Π₂<br>• 兩平面法向量 n₁, n₂ 不可平行<br>• 直線方向向量 d = n₁ × n₂'
+};
+document.getElementById('learning-info').innerHTML = info[mode];
+}
+
+function clearGraphics() {
+if (lineMesh) {
+scene.remove(lineMesh);
+lineMesh.geometry.dispose();
+lineMesh.material.dispose();
+lineMesh = null;
+}
+if (pointMarker) {
+pointsGroup.remove(pointMarker);
+pointMarker.geometry.dispose();
+pointMarker.material.dispose();
+pointMarker = null;
+}
+if (directionArrow) {
+scene.remove(directionArrow);
+directionArrow = null;
+}
+if (animatedPoint) {
+scene.remove(animatedPoint);
+animatedPoint.geometry.dispose();
+animatedPoint.material.dispose();
+animatedPoint = null;
+}
+if (plane1Mesh) {
+scene.remove(plane1Mesh);
+plane1Mesh.geometry.dispose();
+plane1Mesh.material.dispose();
+plane1Mesh = null;
+}
+if (plane2Mesh) {
+scene.remove(plane2Mesh);
+plane2Mesh.geometry.dispose();
+plane2Mesh.material.dispose();
+plane2Mesh = null;
+}
+pointMarkers.forEach(m => {
+pointsGroup.remove(m);
+m.geometry.dispose();
+m.material.dispose();
+});
+pointMarkers = [];
+auxLines.forEach(l => {
+scene.remove(l);
+if (l.geometry) l.geometry.dispose();
+if (l.material) l.material.dispose();
+});
+auxLines = [];
+labels.forEach(l => {
+if (!l.element.classList.contains('label-axis')) {
+scene.remove(l);
+}
+});
+equationLabels.forEach(l => {
+scene.remove(l);
+});
+equationLabels = [];
+}
+
+// 參數式
+function showParametricLine(P0, d) {
+clearGraphics();
+if (d.length() < 0.0001) {
+alert("方向向量不可為零！");
+return;
+}
+const dir = d.clone().normalize();
+// 畫直線
+const lineStart = P0.clone().sub(dir.clone().multiplyScalar(10));
+const lineEnd = P0.clone().add(dir.clone().multiplyScalar(10));
+createLine(lineStart, lineEnd, 0xff9f43);
+// 方向箭頭
+directionArrow = new THREE.ArrowHelper(dir, P0, 2, 0x00ff88, 0.5, 0.3);
+scene.add(directionArrow);
+// 標記定點 P₀
+createPointMarker(P0, 0xffd700, 'P₀');
+// 顯示方向向量標籤
+const labelPos = P0.clone().add(dir.clone().multiplyScalar(2.5));
+addLabel(labelPos, 'd', 'label-direction');
+// 動點
+animatedPoint = new THREE.Mesh(
+new THREE.SphereGeometry(0.2),
+new THREE.MeshPhongMaterial({ color: 0xff6b6b, emissive: 0xff6b6b, emissiveIntensity: 0.5 })
+);
+scene.add(animatedPoint);
+// 在3D場景中顯示參數式
+const eqPos = P0.clone().add(new THREE.Vector3(0, 0, 3));
+addEquationLabel(eqPos, `(x,y,z) = (${P0.x},${P0.y},${P0.z})\n+ t(${d.x},${d.y},${d.z})`);
+displayParametricEquation(P0, d);
+}
+
+function displayParametricEquation(P0, d) {
+document.getElementById('result').style.display = 'block';
+document.getElementById('equation-display').innerHTML = `(x, y, z) = (${P0.x}, ${P0.y}, ${P0.z}) + t(${d.x}, ${d.y}, ${d.z})`;
+document.getElementById('formula-display').innerHTML = `<strong>參數式：</strong><br>x = ${P0.x} + ${d.x}t<br>y = ${P0.y} + ${d.y}t<br>z = ${P0.z} + ${d.z}t`;
+}
+
+// 對稱比例式
+function showSymmetricLine(P0, d) {
+clearGraphics();
+if (d.length() < 0.0001) {
+alert("方向向量不可為零！");
+return;
+}
+const dir = d.clone().normalize();
+// 畫直線
+const lineStart = P0.clone().sub(dir.clone().multiplyScalar(10));
+const lineEnd = P0.clone().add(dir.clone().multiplyScalar(10));
+createLine(lineStart, lineEnd, 0xff9f43);
+// 方向箭頭
+directionArrow = new THREE.ArrowHelper(dir, P0, 2, 0x00ff88, 0.5, 0.3);
+scene.add(directionArrow);
+// 標記定點
+createPointMarker(P0, 0xffd700, 'P₀');
+// 方向標籤
+const labelPos = P0.clone().add(dir.clone().multiplyScalar(2.5));
+addLabel(labelPos, 'd', 'label-direction');
+// 動點
+animatedPoint = new THREE.Mesh(
+new THREE.SphereGeometry(0.2),
+new THREE.MeshPhongMaterial({ color: 0xff6b6b, emissive: 0xff6b6b, emissiveIntensity: 0.5 })
+);
+scene.add(animatedPoint);
+// 計算對稱比例式
+let equation;
+if (Math.abs(d.x) < 0.0001 && Math.abs(d.y) < 0.0001) {
+equation = `x = ${P0.x}, y = ${P0.y}`;
+} else if (Math.abs(d.x) < 0.0001 && Math.abs(d.z) < 0.0001) {
+equation = `x = ${P0.x}, z = ${P0.z}`;
+} else if (Math.abs(d.y) < 0.0001 && Math.abs(d.z) < 0.0001) {
+equation = `y = ${P0.y}, z = ${P0.z}`;
+} else {
+const parts = [];
+if (Math.abs(d.x) > 0.0001) parts.push(`(x-${P0.x})/${d.x}`);
+if (Math.abs(d.y) > 0.0001) parts.push(`(y-${P0.y})/${d.y}`);
+if (Math.abs(d.z) > 0.0001) parts.push(`(z-${P0.z})/${d.z}`);
+equation = parts.join(' = ');
+}
+// 在3D場景中顯示對稱比例式
+const eqPos = P0.clone().add(new THREE.Vector3(0, 0, 3));
+addEquationLabel(eqPos, equation);
+displaySymmetricEquation(P0, d, equation);
+}
+
+function displaySymmetricEquation(P0, d, equation) {
+document.getElementById('result').style.display = 'block';
+document.getElementById('equation-display').innerHTML = equation;
+document.getElementById('formula-display').innerHTML = `<strong>對稱比例式：</strong><br>${equation}<br><br><strong>由參數式化簡：</strong><br>x = ${P0.x} + ${d.x}t, y = ${P0.y} + ${d.y}t, z = ${P0.z} + ${d.z}t`;
+}
+
+// 兩面式
+function showTwoPlanesLine(a1, b1, c1, d1, a2, b2, c2, d2) {
+clearGraphics();
+const n1 = new THREE.Vector3(a1, b1, c1);
+const n2 = new THREE.Vector3(a2, b2, c2);
+const cross = new THREE.Vector3().crossVectors(n1, n2);
+if (cross.length() < 0.0001) {
+alert("兩平面法向量平行！無法決定唯一交線");
+return;
+}
+// 畫兩平面
+const size = 8;
+// 平面1（紅色）
+const plane1Geom = new THREE.PlaneGeometry(size, size);
+const plane1Mat = new THREE.MeshPhongMaterial({ color: 0xff6464, side: THREE.DoubleSide, transparent: true, opacity: 0.4, depthWrite: false });
+plane1Mesh = new THREE.Mesh(plane1Geom, plane1Mat);
+plane1Mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n1.clone().normalize());
+let P1;
+if (Math.abs(c1) > 0.0001) {
+P1 = new THREE.Vector3(0, 0, d1/c1);
+} else if (Math.abs(b1) > 0.0001) {
+P1 = new THREE.Vector3(0, d1/b1, 0);
+} else {
+P1 = new THREE.Vector3(d1/a1, 0, 0);
+}
+plane1Mesh.position.copy(P1);
+scene.add(plane1Mesh);
+// 平面2（藍色）
+const plane2Geom = new THREE.PlaneGeometry(size, size);
+const plane2Mat = new THREE.MeshPhongMaterial({ color: 0x6464ff, side: THREE.DoubleSide, transparent: true, opacity: 0.4, depthWrite: false });
+plane2Mesh = new THREE.Mesh(plane2Geom, plane2Mat);
+plane2Mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n2.clone().normalize());
+let P2;
+if (Math.abs(c2) > 0.0001) {
+P2 = new THREE.Vector3(0, 0, d2/c2);
+} else if (Math.abs(b2) > 0.0001) {
+P2 = new THREE.Vector3(0, d2/b2, 0);
+} else {
+P2 = new THREE.Vector3(d2/a2, 0, 0);
+}
+plane2Mesh.position.copy(P2);
+scene.add(plane2Mesh);
+// 求直線上的點
+const dir = cross.clone().normalize();
+let P0 = new THREE.Vector3();
+let found = false;
+if (!found) {
+const det = b1*c2 - b2*c1;
+if (Math.abs(det) > 0.0001) {
+P0.y = (d1*c2 - d2*c1) / det;
+P0.z = (b1*d2 - b2*d1) / det;
+P0.x = 0;
+found = true;
+}
+}
+if (!found) {
+const det = a1*c2 - a2*c1;
+if (Math.abs(det) > 0.0001) {
+P0.x = (d1*c2 - d2*c1) / det;
+P0.z = (a1*d2 - a2*d1) / det;
+P0.y = 0;
+found = true;
+}
+}
+if (!found) {
+const det = a1*b2 - a2*b1;
+if (Math.abs(det) > 0.0001) {
+P0.x = (d1*b2 - d2*b1) / det;
+P0.y = (a1*d2 - a2*d1) / det;
+P0.z = 0;
+found = true;
+}
+}
+// 畫直線
+const lineStart = P0.clone().sub(dir.clone().multiplyScalar(10));
+const lineEnd = P0.clone().add(dir.clone().multiplyScalar(10));
+createLine(lineStart, lineEnd, 0xff9f43);
+// 方向箭頭
+directionArrow = new THREE.ArrowHelper(dir, P0, 2, 0x00ff88, 0.5, 0.3);
+scene.add(directionArrow);
+// 標記直線上一點
+createPointMarker(P0, 0xffd700, 'P₀');
+// 方向標籤
+const labelPos = P0.clone().add(dir.clone().multiplyScalar(2.5));
+addLabel(labelPos, 'd', 'label-direction');
+// 動點
+animatedPoint = new THREE.Mesh(
+new THREE.SphereGeometry(0.2),
+new THREE.MeshPhongMaterial({ color: 0xff6b6b, emissive: 0xff6b6b, emissiveIntensity: 0.5 })
+);
+scene.add(animatedPoint);
+// 在3D場景中顯示兩面式（聯立方程式）
+const eqPos = P0.clone().add(new THREE.Vector3(0, 0, 4));
+const eqText = `Π₁: ${a1}x + ${b1}y + ${c1}z = ${d1}\nΠ₂: ${a2}x + ${b2}y + ${c2}z = ${d2}`;
+addEquationLabel(eqPos, eqText);
+displayTwoPlanesEquation(a1, b1, c1, d1, a2, b2, c2, d2, P0, dir);
+}
+
+function displayTwoPlanesEquation(a1, b1, c1, d1, a2, b2, c2, d2, P0, dir) {
+document.getElementById('result').style.display = 'block';
+document.getElementById('equation-display').innerHTML = `Π₁: ${a1}x + ${b1}y + ${c1}z = ${d1}<br>Π₂: ${a2}x + ${b2}y + ${c2}z = ${d2}`;
+document.getElementById('formula-display').innerHTML = `<strong>兩面式</strong>（直線為兩平面交線）<br><br>` +
+`<strong>平面 Π₁ 法向量：</strong> n₁ = (${a1}, ${b1}, ${c1})<br>` +
+`<strong>平面 Π₂ 法向量：</strong> n₂ = (${a2}, ${b2}, ${c2})<br>` +
+`<strong>直線方向向量：</strong> d = n₁ × n₂ = (${dir.x.toFixed(1)}, ${dir.y.toFixed(1)}, ${dir.z.toFixed(1)})<br>` +
+`<strong>直線上一點：</strong> P₀ = (${P0.x.toFixed(1)}, ${P0.y.toFixed(1)}, ${P0.z.toFixed(1)})`;
+}
+
+// 動點動畫
+function togglePointAnimation() {
+if (isAnimating) {
+stopPointAnimation();
+} else {
+startPointAnimation();
+}
+}
+
+function startPointAnimation() {
+if (!animatedPoint) return;
+isAnimating = true;
+const P0 = getCurrentP0();
+const d = getCurrentDirection();
+const dir = d.clone().normalize();
+let t = -5;
+function animatePoint() {
+if (!isAnimating) return;
+t += 0.03;
+if (t > 5) t = -5;
+const newPos = P0.clone().add(dir.clone().multiplyScalar(t));
+animatedPoint.position.copy(newPos);
+pointAnimationId = requestAnimationFrame(animatePoint);
+}
+animatePoint();
+}
+
+function stopPointAnimation() {
+isAnimating = false;
+if (pointAnimationId) {
+cancelAnimationFrame(pointAnimationId);
+pointAnimationId = null;
+}
+}
+
+function getCurrentP0() {
+const mode = document.querySelector('.mode-btn.active').textContent;
+if (mode.includes('參數式')) {
+return new THREE.Vector3(
+parseFloat(document.getElementById('p0x').value),
+parseFloat(document.getElementById('p0y').value),
+parseFloat(document.getElementById('p0z').value)
+);
+} else if (mode.includes('對稱')) {
+return new THREE.Vector3(
+parseFloat(document.getElementById('sym_px').value),
+parseFloat(document.getElementById('sym_py').value),
+parseFloat(document.getElementById('sym_pz').value)
+);
+} else {
+return new THREE.Vector3(0, 0, 0);
+}
+}
+
+function getCurrentDirection() {
+const mode = document.querySelector('.mode-btn.active').textContent;
+if (mode.includes('參數式')) {
+return new THREE.Vector3(
+parseFloat(document.getElementById('dir_x').value),
+parseFloat(document.getElementById('dir_y').value),
+parseFloat(document.getElementById('dir_z').value)
+);
+} else if (mode.includes('對稱')) {
+return new THREE.Vector3(
+parseFloat(document.getElementById('sym_dx').value),
+parseFloat(document.getElementById('sym_dy').value),
+parseFloat(document.getElementById('sym_dz').value)
+);
+} else {
+return new THREE.Vector3(1, 1, 1);
+}
+}
+
+// 計算函數
+function calculateParametric() {
+const P0 = new THREE.Vector3(
+parseFloat(document.getElementById('p0x').value),
+parseFloat(document.getElementById('p0y').value),
+parseFloat(document.getElementById('p0z').value)
+);
+const d = new THREE.Vector3(
+parseFloat(document.getElementById('dir_x').value),
+parseFloat(document.getElementById('dir_y').value),
+parseFloat(document.getElementById('dir_z').value)
+);
+showParametricLine(P0, d);
+}
+
+function calculateSymmetric() {
+const P0 = new THREE.Vector3(
+parseFloat(document.getElementById('sym_px').value),
+parseFloat(document.getElementById('sym_py').value),
+parseFloat(document.getElementById('sym_pz').value)
+);
+const d = new THREE.Vector3(
+parseFloat(document.getElementById('sym_dx').value),
+parseFloat(document.getElementById('sym_dy').value),
+parseFloat(document.getElementById('sym_dz').value)
+);
+showSymmetricLine(P0, d);
+}
+
+function calculateTwoPlanes() {
+const a1 = parseFloat(document.getElementById('a1').value);
+const b1 = parseFloat(document.getElementById('b1').value);
+const c1 = parseFloat(document.getElementById('c1').value);
+const d1 = parseFloat(document.getElementById('d1').value);
+const a2 = parseFloat(document.getElementById('a2').value);
+const b2 = parseFloat(document.getElementById('b2').value);
+const c2 = parseFloat(document.getElementById('c2').value);
+const d2 = parseFloat(document.getElementById('d2').value);
+showTwoPlanesLine(a1, b1, c1, d1, a2, b2, c2, d2);
+}
+
+// 載入範例
+function loadExample(mode) {
+const examples = {
+'parametric': { p0x: 1, p0y: 0, p0z: 0, dir_x: 1, dir_y: 1, dir_z: 1 },
+'symmetric': { sym_px: 1, sym_py: 0, sym_pz: 0, sym_dx: 2, sym_dy: 2, sym_dz: 4 },
+'twoPlanes': { a1: 1, b1: 1, c1: -1, d1: 0, a2: 1, b2: -1, c2: 0, d2: 0 }
+};
+const ex = examples[mode];
+if (mode === 'parametric') {
+document.getElementById('p0x').value = ex.p0x;
+document.getElementById('p0y').value = ex.p0y;
+document.getElementById('p0z').value = ex.p0z;
+document.getElementById('dir_x').value = ex.dir_x;
+document.getElementById('dir_y').value = ex.dir_y;
+document.getElementById('dir_z').value = ex.dir_z;
+calculateParametric();
+} else if (mode === 'symmetric') {
+document.getElementById('sym_px').value = ex.sym_px;
+document.getElementById('sym_py').value = ex.sym_py;
+document.getElementById('sym_pz').value = ex.sym_pz;
+document.getElementById('sym_dx').value = ex.sym_dx;
+document.getElementById('sym_dy').value = ex.sym_dy;
+document.getElementById('sym_dz').value = ex.sym_dz;
+calculateSymmetric();
+} else if (mode === 'twoPlanes') {
+document.getElementById('a1').value = ex.a1;
+document.getElementById('b1').value = ex.b1;
+document.getElementById('c1').value = ex.c1;
+document.getElementById('d1').value = ex.d1;
+document.getElementById('a2').value = ex.a2;
+document.getElementById('b2').value = ex.b2;
+document.getElementById('c2').value = ex.c2;
+document.getElementById('d2').value = ex.d2;
+calculateTwoPlanes();
+}
+}
+
+window.onload = init;
+</script>
+</body>
+</html>
