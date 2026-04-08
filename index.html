@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高中數學互動教材 - 空間向量</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .container { max-width: 1000px; width: 100%; text-align: center; }
+        h1 { font-size: 2.5rem; margin-bottom: 10px; background: linear-gradient(135deg, #4cc9f0, #4361ee, #7209b7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .subtitle { font-size: 1.1rem; color: #aaa; margin-bottom: 50px; }
+        .card-container { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; }
+        .card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 40px 30px; width: 280px; text-decoration: none; color: #fff; transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+        .card:hover { transform: translateY(-10px); }
+        .card-icon { font-size: 4rem; margin-bottom: 20px; display: block; }
+        .card-title { font-size: 1.4rem; font-weight: bold; margin-bottom: 15px; }
+        .card-description { font-size: 0.9rem; color: #aaa; line-height: 1.6; }
+
+        /* 平面方程式卡片 - 紅色調 */
+        .card:nth-child(1)::before { background: linear-gradient(90deg, #ff6b6b, #ee5a24); }
+        .card:nth-child(1):hover { box-shadow: 0 20px 40px rgba(255, 107, 107, 0.3); border-color: rgba(255, 107, 107, 0.5); }
+        .card:nth-child(1) .card-title { color: #ff6b6b; }
+
+        /* 直線方程式卡片 - 藍色調 */
+        .card:nth-child(2)::before { background: linear-gradient(90deg, #4cc9f0, #4361ee); }
+        .card:nth-child(2):hover { box-shadow: 0 20px 40px rgba(76, 201, 240, 0.3); border-color: rgba(76, 201, 240, 0.5); }
+        .card:nth-child(2) .card-title { color: #4cc9f0; }
+
+        /* 平面截痕展示卡片 - 紫色調 */
+        .card:nth-child(3)::before { background: linear-gradient(90deg, #a855f7, #6366f1); }
+        .card:nth-child(3):hover { box-shadow: 0 20px 40px rgba(168, 85, 247, 0.3); border-color: rgba(168, 85, 247, 0.5); }
+        .card:nth-child(3) .card-title { color: #a855f7; }
+
+        .footer { margin-top: 60px; color: rgba(255, 255, 255, 0.4); font-size: 0.9rem; }
+        .footer span { color: #4cc9f0; }
+        .copyright { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.5); padding: 10px 20px; border-radius: 20px; font-size: 0.9rem; color: rgba(255, 255, 255, 0.6); backdrop-filter: blur(5px); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧮 高中數學互動教材</h1>
+        <p class="subtitle">空間向量單元 - 互動式學習工具</p>
+        
+        <div class="card-container">
+            <!-- 平面方程式 -->
+            <a href="plane.html" class="card">
+                <span class="card-icon">📐</span>
+                <div class="card-title">平面方程式</div>
+                <div class="card-description">
+                    學習空間中平面的三種表示方式：<br>
+                    • 點法式<br>
+                    • 三點式<br>
+                    • 法向量式
+                </div>
+            </a>
+
+            <!-- 直線方程式 -->
+            <a href="line.html" class="card">
+                <span class="card-icon">📏</span>
+                <div class="card-title">直線方程式</div>
+                <div class="card-description">
+                    學習空間中直線的三種表示方式：<br>
+                    • 參數式<br>
+                    • 對稱比例式<br>
+                    • 兩面式
+                </div>
+            </a>
+
+            <!-- 平面截痕展示 - 新增 -->
+            <a href="plane_cut.html" class="card">
+                <span class="card-icon">✂️</span>
+                <div class="card-title">平面截痕展示</div>
+                <div class="card-description">
+                    觀察平面與長方體的截面：<br>
+                    • 輸入三點定義平面<br>
+                    • 動態顯示截痕形狀<br>
+                    • 支援任意角度切割
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- 版權宣告 -->
+    <div class="copyright">
+        👨‍🏫 李向宇老師製作 | 讓數學更有趣
+    </div>
+</body>
+</html>
