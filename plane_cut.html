@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>平面截痕展示 | 李向宇老師</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #fff; overflow: hidden; }
+#container { display: flex; height: 100vh; }
+#sidebar { width: 380px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); padding: 20px; overflow-y: auto; border-right: 1px solid rgba(255, 255, 255, 0.1); }
+#canvas-container { flex: 1; position: relative; }
+#canvas-container canvas { display: block; }
+#copyright { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); color: rgba(255, 255, 255, 0.5); font-size: 0.85rem; text-align: center; z-index: 100; pointer-events: none; }
+h1 { font-size: 1.5rem; margin-bottom: 20px; color: #4cc9f0; text-align: center; text-shadow: 0 0 10px rgba(76, 201, 240, 0.5); }
+.input-group { background: rgba(0, 0, 0, 0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+.input-group h3 { color: #4cc9f0; margin-bottom: 12px; font-size: 1.1rem; }
+.input-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+.input-row label { min-width: 35px; color: #aaa; font-size: 0.9rem; }
+.input-row input { flex: 1; padding: 8px 12px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 5px; background: rgba(255, 255, 255, 0.1); color: #fff; font-size: 1rem; text-align: center; }
+.input-row input:focus { outline: none; border-color: #4cc9f0; }
+.vector-input { display: flex; align-items: center; gap: 5px; }
+.vector-input input { width: 60px; }
+.vector-input span { color: #aaa; }
+.btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #4cc9f0, #4361ee); border: none; border-radius: 8px; color: #fff; font-size: 1rem; cursor: pointer; transition: all 0.3s; margin-top: 10px; }
+.btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(76, 201, 240, 0.4); }
+.btn-secondary { background: rgba(255, 255, 255, 0.1); }
+.btn-secondary:hover { background: rgba(255, 255, 255, 0.2); }
+#result { background: rgba(0, 0, 0, 0.4); padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid rgba(255, 215, 0, 0.3); }
+#result h3 { color: #4cc9f0; margin-bottom: 10px; font-size: 1rem; }
+.equation { font-size: 1.3rem; color: #ffd700; text-align: center; padding: 15px; background: rgba(255, 215, 0, 0.1); border-radius: 5px; margin: 10px 0; font-family: 'Times New Roman', serif; letter-spacing: 1px; }
+#legend { position: absolute; top: 20px; right: 20px; background: rgba(0, 0, 0, 0.7); padding: 15px; border-radius: 8px; font-size: 0.85rem; }
+.legend-item { display: flex; align-items: center; margin: 5px 0; }
+.legend-color { width: 20px; height: 4px; margin-right: 10px; border-radius: 2px; }
+.control-buttons { display: flex; gap: 8px; margin-top: 15px; }
+.control-buttons .btn { flex: 1; padding: 10px; font-size: 0.9rem; }
+.css2d-label { color: #fff; font-family: 'Microsoft JhengHei', Arial, sans-serif; font-size: 14px; padding: 4px 8px; background: rgba(0, 0, 0, 0.85); border-radius: 4px; white-space: nowrap; pointer-events: none; font-weight: bold; border: 1px solid rgba(255,255,255,0.3); }
+</style>
+</head>
+<body>
+<div id="container">
+<div id="sidebar">
+<h1>🔪 平面截痕展示</h1>
+<div class="input-group">
+<h3>📦 長方體 (a, b, c)</h3>
+<div class="input-row">
+<input type="number" id="a" value="4" min="1" max="20" step="0.5" placeholder="a">
+<span style="color:#aaa;">×</span>
+<input type="number" id="b" value="3" min="1" max="20" step="0.5" placeholder="b">
+<span style="color:#aaa;">×</span>
+<input type="number" id="c" value="5" min="1" max="20" step="0.5" placeholder="c">
+</div>
+</div>
+<div class="input-group">
+<h3>📍 平面三點座標</h3>
+<div class="input-row"><label>P1</label> <div class="vector-input"> <input type="number" id="p1x" value="2"><span>,</span> <input type="number" id="p1y" value="1.5"><span>,</span> <input type="number" id="p1z" value="5"> </div> </div>
+<div class="input-row"><label>P2</label> <div class="vector-input"> <input type="number" id="p2x" value="2"><span>,</span> <input type="number" id="p2y" value="3"><span>,</span> <input type="number" id="p2z" value="0"> </div> </div>
+<div class="input-row"><label>P3</label> <div class="vector-input"> <input type="number" id="p3x" value="6"><span>,</span> <input type="number" id="p3y" value="1.5"><span>,</span> <input type="number" id="p3z" value="2.5"> </div> </div>
+</div>
+<button class="btn" onclick="updateScene()">🚀 更新顯示</button>
+<div class="control-buttons">
+<button class="btn btn-secondary" onclick="resetView()">🔄 重置視角</button>
+<button class="btn btn-secondary" onclick="togglePlane()">📐 平面開關</button>
+<button class="btn btn-secondary" onclick="toggleWireframe()">🔲 線框</button>
+</div>
+<div id="result">
+<h3>📐 平面方程式</h3>
+<div class="equation" id="planeEquation">Ax + By + Cz + D = 0</div>
+</div>
+<div style="background:rgba(0,0,0,0.3);padding:15px;border-radius:8px;margin-top:15px;">
+<h3 style="color:#4cc9f0;margin-bottom:10px;">💡 快速範例</h3>
+<p style="color:#aaa;font-size:0.9rem;line-height:1.8;">
+水平切：y = 1.5<br>
+垂直切：x = 2<br>
+對角切：(0,0,0), (4,3,5), (4,0,0)
+</p>
+</div>
+</div>
+<div id="canvas-container">
+<div id="legend">
+<div class="legend-item"><div class="legend-color" style="background:#ff0000;"></div><span>X 軸 (紅色)</span></div>
+<div class="legend-item"><div class="legend-color" style="background:#00ff00;"></div><span>Y 軸 (綠色)</span></div>
+<div class="legend-item"><div class="legend-color" style="background:#0088ff;"></div><span>Z 軸 (藍色)</span></div>
+<div class="legend-item"><div class="legend-color" style="background:#ff9f43; opacity:0.7; height:8px;"></div><span>平面</span></div>
+<div class="legend-item"><div class="legend-color" style="background:#ff0055; height:8px;"></div><span>截痕</span></div>
+</div>
+<div id="copyright">👨‍🏫 李向宇老師製作</div>
+</div>
+</div>
+<script>
+let scene, camera, renderer, labelRenderer, controls;
+let boxMesh, planeMesh, boxEdges, intersectionGroup, inputPointsGroup;
+let showPlane = true, isWireframe = false;
+let gridHelper;
+let labels = [];
+let axisLabels = [];
+
+function init() {
+const container = document.getElementById('canvas-container');
+scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1a2e);
+camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+container.appendChild(renderer.domElement);
+labelRenderer = new THREE.CSS2DRenderer();
+labelRenderer.setSize(container.clientWidth, container.clientHeight);
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0px';
+labelRenderer.domElement.style.pointerEvents = 'none';
+container.appendChild(labelRenderer.domElement);
+controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+camera.up.set(0, 0, 1);
+resetView();
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+scene.add(ambientLight);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+directionalLight.position.set(10, 10, 15);
+scene.add(directionalLight);
+createAxesAndGrid();
+intersectionGroup = new THREE.Group();
+scene.add(intersectionGroup);
+inputPointsGroup = new THREE.Group();
+scene.add(inputPointsGroup);
+updateScene();
+animate();
+window.addEventListener('resize', onWindowResize);
+}
+
+function createAxesAndGrid() {
+const axisLength = 6;
+const axesHelper = new THREE.AxesHelper(axisLength);
+scene.add(axesHelper);
+// 添加 X, Y, Z 軸標籤
+addAxisLabel(new THREE.Vector3(7, 0, 0), 'X', '#ff4444');
+addAxisLabel(new THREE.Vector3(0, 7, 0), 'Y', '#44ff44');
+addAxisLabel(new THREE.Vector3(0, 0, 7), 'Z', '#4488ff');
+gridHelper = new THREE.GridHelper(12, 12, 0x444444, 0x222222);
+gridHelper.rotation.x = Math.PI / 2;
+scene.add(gridHelper);
+}
+
+function addAxisLabel(pos, text, color) {
+const div = document.createElement('div');
+div.className = 'css2d-label';
+div.textContent = text;
+div.style.color = color;
+div.style.fontSize = '16px';
+div.style.fontWeight = 'bold';
+div.style.textShadow = '0 0 5px ' + color;
+const label = new THREE.CSS2DObject(div);
+label.position.copy(pos);
+scene.add(label);
+axisLabels.push(label);
+}
+
+function addLabel(pos, text, color) {
+const div = document.createElement('div');
+div.className = 'css2d-label';
+div.textContent = text;
+div.style.color = color;
+const label = new THREE.CSS2DObject(div);
+label.position.copy(pos);
+scene.add(label);
+labels.push(label);
+}
+
+function onWindowResize() {
+const container = document.getElementById('canvas-container');
+camera.aspect = container.clientWidth / container.clientHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(container.clientWidth, container.clientHeight);
+labelRenderer.setSize(container.clientWidth, container.clientHeight);
+}
+
+function animate() {
+requestAnimationFrame(animate);
+controls.update();
+renderer.render(scene, camera);
+labelRenderer.render(scene, camera);
+}
+
+function resetView() {
+camera.position.set(10, -12, 10);
+controls.target.set(2, 1.5, 2.5);
+controls.update();
+}
+
+function getInputs() {
+return {
+a: parseFloat(document.getElementById('a').value) || 4,
+b: parseFloat(document.getElementById('b').value) || 3,
+c: parseFloat(document.getElementById('c').value) || 5,
+p1: { x: parseFloat(document.getElementById('p1x').value) || 0, y: parseFloat(document.getElementById('p1y').value) || 0, z: parseFloat(document.getElementById('p1z').value) || 0 },
+p2: { x: parseFloat(document.getElementById('p2x').value) || 0, y: parseFloat(document.getElementById('p2y').value) || 0, z: parseFloat(document.getElementById('p2z').value) || 0 },
+p3: { x: parseFloat(document.getElementById('p3x').value) || 0, y: parseFloat(document.getElementById('p3y').value) || 0, z: parseFloat(document.getElementById('p3z').value) || 0 }
+};
+}
+
+function calculatePlaneEquation(p1, p2, p3) {
+const v1 = { x: p2.x - p1.x, y: p2.y - p1.y, z: p2.z - p1.z };
+const v2 = { x: p3.x - p1.x, y: p3.y - p1.y, z: p3.z - p1.z };
+const A = v1.y * v2.z - v1.z * v2.y;
+const B = v1.z * v2.x - v1.x * v2.z;
+const C = v1.x * v2.y - v1.y * v2.x;
+const D = -(A * p1.x + B * p1.y + C * p1.z);
+return { A, B, C, D };
+}
+
+function linePlaneIntersection(p1, p2, A, B, C, D) {
+const v = { x: p2.x - p1.x, y: p2.y - p1.y, z: p2.z - p1.z };
+const denom = A * v.x + B * v.y + C * v.z;
+if (Math.abs(denom) < 0.0001) return null;
+const t = -(A * p1.x + B * p1.y + C * p1.z + D) / denom;
+if (t < 0 || t > 1) return null;
+return { x: p1.x + t * v.x, y: p1.y + t * v.y, z: p1.z + t * v.z };
+}
+
+function calculateIntersection(a, b, c, A, B, C, D) {
+const vertices = [
+{ x: 0, y: 0, z: 0 }, { x: a, y: 0, z: 0 }, { x: a, y: b, z: 0 }, { x: 0, y: b, z: 0 },
+{ x: 0, y: 0, z: c }, { x: a, y: 0, z: c }, { x: a, y: b, z: c }, { x: 0, y: b, z: c }
+];
+const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+const intersectionPoints = [];
+edges.forEach(([i1, i2]) => {
+const p1 = vertices[i1], p2 = vertices[i2];
+const intersection = linePlaneIntersection(p1, p2, A, B, C, D);
+if (intersection) intersectionPoints.push(intersection);
+});
+return intersectionPoints;
+}
+
+function updateScene() {
+const inputs = getInputs();
+const { a, b, c, p1, p2, p3 } = inputs;
+if (boxMesh) { scene.remove(boxMesh); boxMesh.geometry.dispose(); boxMesh.material.dispose(); }
+if (boxEdges) { scene.remove(boxEdges); boxEdges.geometry.dispose(); boxEdges.material.dispose(); }
+if (planeMesh) { scene.remove(planeMesh); planeMesh.geometry.dispose(); planeMesh.material.dispose(); }
+// 清除一般標籤（保留軸標籤）
+labels.forEach(l => scene.remove(l));
+labels = [];
+intersectionGroup.clear();
+inputPointsGroup.clear();
+const { A, B, C, D } = calculatePlaneEquation(p1, p2, p3);
+const fmt = (n) => Math.abs(n).toFixed(2);
+const s = (n) => n >= 0 ? '+' : '-';
+document.getElementById('planeEquation').innerHTML = `${fmt(A)}x ${s(B)} ${fmt(Math.abs(B))}y ${s(C)} ${fmt(Math.abs(C))}z ${s(D)} ${fmt(Math.abs(D))} = 0`;
+const geometry = new THREE.BoxGeometry(a, b, c);
+const material = new THREE.MeshPhongMaterial({ color: 0x2196F3, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
+boxMesh = new THREE.Mesh(geometry, material);
+boxMesh.position.set(a/2, b/2, c/2);
+scene.add(boxMesh);
+const edgesGeometry = new THREE.EdgesGeometry(geometry);
+const edgesMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+boxEdges = new THREE.LineSegments(edgesGeometry, edgesMaterial);
+boxEdges.position.set(a/2, b/2, c/2);
+scene.add(boxEdges);
+createPlane(A, B, C, D, a, b, c);
+const intersectionPoints = calculateIntersection(a, b, c, A, B, C, D);
+drawIntersection(intersectionPoints, A, B, C);
+markInputPoints(p1, p2, p3);
+}
+
+function createPlane(A, B, C, D, a, b, c) {
+const size = Math.max(a, b, c) * 2.5;
+const geometry = new THREE.PlaneGeometry(size, size);
+const material = new THREE.MeshPhongMaterial({ color: 0xff9f43, side: THREE.DoubleSide, transparent: true, opacity: 0.5, depthWrite: false });
+planeMesh = new THREE.Mesh(geometry, material);
+const normal = new THREE.Vector3(A, B, C).normalize();
+planeMesh.lookAt(normal.clone().add(new THREE.Vector3(0, 0, 0)));
+let cx = a/2, cy = b/2, cz = c/2;
+if (Math.abs(A) > 0.001) cx = -(B*cy + C*cz + D) / A;
+else if (Math.abs(B) > 0.001) cy = -(A*cx + C*cz + D) / B;
+else if (Math.abs(C) > 0.001) cz = -(A*cx + B*cy + D) / C;
+planeMesh.position.set(cx, cy, cz);
+planeMesh.visible = showPlane;
+scene.add(planeMesh);
+}
+
+function drawIntersection(points, A, B, C) {
+if (points.length < 2) return;
+const center = { x: 0, y: 0, z: 0 };
+points.forEach(p => { center.x += p.x; center.y += p.y; center.z += p.z; });
+center.x /= points.length; center.y /= points.length; center.z /= points.length;
+const planeNormal = new THREE.Vector3(A, B, C).normalize();
+let sortAxis, projAxis1, projAxis2;
+if (Math.abs(planeNormal.z) >= Math.abs(planeNormal.x) && Math.abs(planeNormal.z) >= Math.abs(planeNormal.y)) {
+sortAxis = 'z'; projAxis1 = 'x'; projAxis2 = 'y';
+} else if (Math.abs(planeNormal.y) >= Math.abs(planeNormal.x)) {
+sortAxis = 'y'; projAxis1 = 'x'; projAxis2 = 'z';
+} else {
+sortAxis = 'x'; projAxis1 = 'y'; projAxis2 = 'z';
+}
+const centerProj = { x: center[projAxis1], y: center[projAxis2] };
+points.sort((p1, p2) => {
+const a1 = Math.atan2(p1[projAxis2] - centerProj.y, p1[projAxis1] - centerProj.x);
+const a2 = Math.atan2(p2[projAxis2] - centerProj.y, p2[projAxis1] - centerProj.x);
+return a1 - a2;
+});
+const pathPoints = points.map(p => new THREE.Vector3(p.x, p.y, p.z));
+pathPoints.push(pathPoints[0].clone());
+const curve = new THREE.CatmullRomCurve3(pathPoints, true);
+curve.curveType = 'catmullrom';
+curve.tension = 0;
+const tubeGeometry = new THREE.TubeGeometry(curve, 64, 0.06, 8, true);
+const tubeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0055 });
+const tubeMesh = new THREE.Mesh(tubeGeometry, tubeMaterial);
+intersectionGroup.add(tubeMesh);
+points.forEach(p => {
+const sphereGeo = new THREE.SphereGeometry(0.08, 12, 12);
+const sphereMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+sphere.position.set(p.x, p.y, p.z);
+intersectionGroup.add(sphere);
+});
+}
+
+function markInputPoints(p1, p2, p3) {
+const points = [p1, p2, p3];
+const names = ['P1', 'P2', 'P3'];
+points.forEach((p, i) => {
+const geo = new THREE.SphereGeometry(0.12, 16, 16);
+const mat = new THREE.MeshPhongMaterial({ color: 0x00ff88, emissive: 0x00ff88, emissiveIntensity: 0.3 });
+const marker = new THREE.Mesh(geo, mat);
+marker.position.set(p.x, p.y, p.z);
+inputPointsGroup.add(marker);
+const labelPos = new THREE.Vector3(p.x + 0.25, p.y + 0.25, p.z + 0.25);
+addLabel(labelPos, names[i], '#00ff88');
+});
+}
+
+function toggleWireframe() {
+isWireframe = !isWireframe;
+if (boxMesh) boxMesh.material.wireframe = isWireframe;
+}
+
+function togglePlane() {
+showPlane = !showPlane;
+if (planeMesh) planeMesh.visible = showPlane;
+}
+
+window.onload = init;
+</script>
+</body>
+</html>
